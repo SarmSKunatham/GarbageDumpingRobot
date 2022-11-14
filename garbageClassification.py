@@ -161,7 +161,7 @@ while cap.isOpened():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         # If pressed 's' key, then capture the image and save it
-        if cv2.waitKey(1) & 0xFF == ord('s'):
+        if cv2.waitKey(1) == ord('s'):
             cv2.imwrite('test.jpg', img)
             predict_external_image("test.jpg")
             # After predicting the image, delete the image
