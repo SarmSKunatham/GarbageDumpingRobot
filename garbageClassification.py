@@ -11,6 +11,7 @@ from PIL import Image
 from pathlib import Path
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
+import serial
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -141,11 +142,7 @@ def predict_external_image(image_name):
     # destroy all the windows that are currently open.
     cv2.destroyAllWindows()
     print("The image resembles", label + ".")
-
-# predict_external_image("test1.jpg")
-# predict_external_image("test2.jpg")
-# predict_external_image("cardboard9.jpg")
-# predict_external_image("glass7.jpg")
+    return label
 
 frameWidth = 1080
 frameHeight = 720
@@ -154,8 +151,16 @@ cap.set(3, frameWidth)
 cap.set(4, frameHeight)
 cap.set(10,150)
 
+# Serial Communication
+ser = serial.Serial('COM3', 115200)
+print(f"Serial port: {ser.name}")
+
 while cap.isOpened():
     success, img = cap.read()
+    # Read serial communication
+    if ser.in_waiting > 0:
+        line = ser.readline().decode('utf-8').rstrip()
+        print(line)
     if success:
         cv2.imshow("Result", img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -163,6 +168,18 @@ while cap.isOpened():
         # If pressed 's' key, then capture the image and save it
         if cv2.waitKey(1) == ord('s'):
             cv2.imwrite('test.jpg', img)
-            predict_external_image("test.jpg")
+            label = predict_external_image("test.jpg")
             # After predicting the image, delete the image
             os.remove("test.jpg")
+
+            # Send the label to another MCU via serial communication
+            if label == "paper":
+                ser.write(b'1')
+            elif label == "bottle":
+                ser.write(b'2')
+            else:
+                ser.write(b'3')
+ser.close()
+cap.release()
+cv2.destroyAllWindows()
+            
