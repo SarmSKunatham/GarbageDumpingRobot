@@ -95,6 +95,22 @@ device = get_default_device()
 print("Device:", device)
 datasetClasses = ['cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash'] 
 
+'''There will be 3 main categories of garbage:
+    1. Paper (cardboard + paper)
+    2. Bottle (Plastic + Glass)
+    3. Unknow (Metal + Trash)
+'''
+mainClass = ['paper', 'bottle', 'unknown']
+mainCategory = {
+    0: 0,
+    1: 1,
+    2: 2,
+    3: 0,
+    4: 1,
+    5: 2
+}
+
+
 def predict_image(img, model):
     # Convert to a batch of 1
     xb = to_device(img.unsqueeze(0), device)
@@ -103,8 +119,15 @@ def predict_image(img, model):
     # Pick index with highest probability
     prob, preds  = torch.max(yb, dim=1)
     print(f"Prob: {prob} and Preds: {preds}")
+
+    if prob[0].item() < 0.8:
+        return mainClass[2]
+
+    mainCategoryOutput = mainCategory[preds[0].item()]
+
     # Retrieve the class label
-    return datasetClasses[preds[0].item()]
+    # return datasetClasses[preds[0].item()]
+    return mainClass[mainCategoryOutput]
 
 def predict_external_image(image_name):
     image = Image.open(Path('./' + image_name))
@@ -119,8 +142,27 @@ def predict_external_image(image_name):
     cv2.destroyAllWindows()
     print("The image resembles", label + ".")
 
-predict_external_image("test1.jpg")
-predict_external_image("test2.jpg")
-predict_external_image("cardboard9.jpg")
-predict_external_image("glass7.jpg")
+# predict_external_image("test1.jpg")
+# predict_external_image("test2.jpg")
+# predict_external_image("cardboard9.jpg")
+# predict_external_image("glass7.jpg")
 
+frameWidth = 1080
+frameHeight = 720
+cap = cv2.VideoCapture(0)
+cap.set(3, frameWidth)
+cap.set(4, frameHeight)
+cap.set(10,150)
+
+while cap.isOpened():
+    success, img = cap.read()
+    if success:
+        cv2.imshow("Result", img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        # If pressed 's' key, then capture the image and save it
+        if cv2.waitKey(1) & 0xFF == ord('s'):
+            cv2.imwrite('test.jpg', img)
+            predict_external_image("test.jpg")
+            # After predicting the image, delete the image
+            os.remove("test.jpg")
